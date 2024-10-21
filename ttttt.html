@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affichage de fichier GeoJSON avec Logo</title>
+    <div class="navbar">  
+        <a href="#" onclick="reloadPage()">Accueil</a>
+        <a href="https://www.bladi.net/ouarzazate,194.html" target="_blank">Actualités</a>
+        <a href="#contact" class="contact" onclick="showContact()">Contact</a>
+    </div>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-measure/dist/leaflet-measure.css" />
+
+    <style>
+        #map {
+            height: 400px;
+            width: 60%;
+            margin: auto;
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .projects {
+            padding: 20px;
+        }
+        .projects h2 {
+            color: #333;
+        }
+        .projects ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .projects ul li {
+            margin: 10px;
+            flex: 1;
+            min-width: 250px;
+        }
+        .projects ul li button {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        .projects ul li button:hover {
+            background-color: #f0f0f0;
+        }
+        .projects ul li img {
+            width: 100px;
+            height: 60px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        .projects ul li span {
+            color: #333;
+            font-weight: bold;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background-color: #e2f0c4;
+            padding: 10px;
+        }
+        .navbar a {
+            text-decoration: none;
+            padding: 10px 15px;
+            color: #333;
+            font-weight: bold;
+        }
+        .navbar a:hover {
+            background-color: #6a6464;
+            border-radius: 5px;
+        }
+        .navbar a.contact {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+        }
+        .navbar a.contact:hover {
+            background-color: #45a049; 
+        }
+        /* Style pour le formulaire de contact */
+        #contact-form {
+            display: none; /* Masquer le formulaire par défaut */
+            position: fixed; /* Positionnement fixe */
+            top: 50%; /* Centrer verticalement */
+            left: 50%; /* Centrer horizontalement */
+            transform: translate(-50%, -50%); /* Déplacer pour le centrer */
+            background-color: white; /* Fond blanc */
+            padding: 20px; /* Espacement interne */
+            border-radius: 5px; /* Coins arrondis */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); /* Ombre */
+            z-index: 1000; /* Au-dessus des autres éléments */
+        }
+        #contact-form span.close {
+            cursor: pointer;
+            color: red; /* Couleur de la croix de fermeture */
+        }
+        /* Styles pour les icônes et les champs de formulaire */
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .form-group i {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+   
+    <h1> Ouarzazate «la ville sans bruit» </h1>
+
+    <div id="map"></div>
+
+    <!-- Formulaire de contact -->
+    <div id="contact-form">
+        <span class="close" onclick="closeContactForm()">X</span>
+        <h3>Contactez-nous</h3>
+        <div class="form-group">
+            <i class="fas fa-user"></i>
+            <input type="text" id="name" placeholder="Votre nom" required>
+        </div>
+        <div class="form-group">
+            <i class="fas fa-user"></i>
+            <input type="text" id="prenom" placeholder="Votre prénom" required>
+        </div>
+        <div class="form-group">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="email" placeholder="Votre email" required>
+        </div>
+        <div class="form-group">
+            <i class="fas fa-map-marker-alt"></i>
+            <input type="text" id="ville" placeholder="Votre ville" required>
+        </div>
+        <div class="form-group">
+            <i class="fas fa-comment"></i>
+            <textarea id="reclamation" placeholder="Votre réclamation ou question" required></textarea>
+        </div>
+        <label for="gsm">Numéro de téléphone :</label>
+        <input type="tel" id="gsm" placeholder="Votre numéro de téléphone" required>
+        <button type="submit">Envoyer</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
+    <!-- Ajoutez Font Awesome pour les icônes -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+    <script>
+        // Initialisation de la carte centrée sur Ouarzazate
+        var map = L.map('map').setView([30.921928089945965, -6.917738980759935], 11);
+
+        // Ajouter une couche de tuiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Charger et afficher un fichier GeoJSON
+        fetch('test.geojson')
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data).addTo(map);
+            })
+            .catch(error => console.error('Erreur lors du chargement du fichier GeoJSON:', error));
+
+        // Fonction pour centrer la carte sur un emplacement donné
+        function centerMap(lat, lng, name) {
+            map.setView([lat, lng], 15);
+            var marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(name).openPopup();
+        }
+
+        // Fonction de rechargement de la page
+        function reloadPage() {
+            location.reload();
+        }
+
+        // Fonction pour afficher le formulaire de contact
+        function showContactForm() {
+            document.getElementById('contact-form').style.display = 'block'; // Affiche le formulaire
+        }
+
+        // Fonction pour fermer le formulaire de contact
+        function closeContactForm() {
+            document.getElementById('contact-form').style.display = 'none'; // Masque le formulaire
+        }
+        function showContact() {
+            var contactSection = document.getElementById('contact');
+            contactSection.style.display = 'block'; // Afficher la section de contact
+            window.scrollTo(0, contactSection.offsetTop); // Faire défiler vers la section de contact
+        }
+        // Initialisation de l'outil de mesure
+        var measureControl = new L.Control.Measure({
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        map.addControl(measureControl);
+    </script>
+
+    <div class="projects">
+        <h2>Que faire lors d'une visite à Ouarzazate ?</h2>
+        <ul>
+            <li>
+                <button onclick="centerMap(30.935064492828232, -6.907997300184604, 'Aéroport de Ouarzazate')">
+
+                    <img src="aeroport-de-Ouarzazate.webp" alt="aéroport de Ouarzazate">
+                    <span>Aéroport de Ouarzazate</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="centerMap(30.926469648564066, -6.90038499897301, 'Ibis Ouarzazate')">
+                    <img src="ibis ouarzazate.jpg" alt="ibis ouarzazate">
+                    <span>Ibis Ouarzazate</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="centerMap(30.920115050153157, -6.899236931072949, 'Kasbah Taourirt')">
+                    <img src="Kasbah_Taourirt_in_Ouarzazate_2011.jpg" alt="Kasbah Taourirt">
+                    <span>Kasbah Taourirt</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="centerMap(30.9411242027943, -6.967324200584869, 'Atlas Studio')">
+                    <img src="atlas_studio.jpg" alt="atlas studio">
+                    <span>Atlas Studio</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="centerMap(31.046445883921905, -7.128923525076317, 'Kasbah Atlas Benhaddou')">
+                    <img src="kasbah-atlas-Benhaddou-marruecos.webp" alt="kasbah atlas Benhaddou">
+                    <span>Kasbah Atlas Benhaddou</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+</body>
+</html>
